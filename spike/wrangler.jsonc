@@ -12,8 +12,8 @@
 		{
 			"binding": "DB",
 			"database_name": "uptime-spike",
-			// placeholder for local dev; replaced after `wrangler d1 create uptime-spike`
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			// created with `wrangler d1 create uptime-spike`
+			"database_id": "4419874d-e8d9-405f-a562-75eb7c438877",
 			"migrations_dir": "migrations"
 		}
 	],
