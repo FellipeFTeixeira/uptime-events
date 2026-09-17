@@ -110,6 +110,53 @@ class Default(WorkerEntrypoint):
             # Baseline: no bindings, no I/O. Measures pure Python runtime overhead per invocation.
             return Response("ok")
 
+        if path == "/fetch1":
+            # One fetch through the SDK wrapper (workers.fetch -> pyfetch -> Response).
+            t0 = time.perf_counter()
+            r = await fetch("https://example.com/", signal=js.AbortSignal.timeout(TIMEOUT_MS))
+            return Response.json(
+                {"status": r.status, "wall_ms": round((time.perf_counter() - t0) * 1000, 1)}
+            )
+
+        if path == "/fetch1js":
+            # One fetch straight through the JS FFI, no Python Response wrapper.
+            t0 = time.perf_counter()
+            r = await js.fetch(
+                "https://example.com/", to_js({"signal": js.AbortSignal.timeout(TIMEOUT_MS)})
+            )
+            return Response.json(
+                {"status": r.status, "wall_ms": round((time.perf_counter() - t0) * 1000, 1)}
+            )
+
+        if path == "/fetch5js":
+            # Five concurrent fetches through the JS FFI, gathered with asyncio.
+            t0 = time.perf_counter()
+            opts = to_js({"signal": js.AbortSignal.timeout(TIMEOUT_MS)})
+            rs = await asyncio.gather(*(js.fetch(m["url"], opts) for m in TARGETS[:4]))
+            return Response.json(
+                {
+                    "statuses": [r.status for r in rs],
+                    "wall_ms": round((time.perf_counter() - t0) * 1000, 1),
+                }
+            )
+
+        if path == "/d1write5":
+            # D1 batch of five INSERT OR IGNORE rows, no fetch. Uses a synthetic slot.
+            slot_i = int(url.searchParams.get("slot") or due_slot(_now_s()))
+            t0 = time.perf_counter()
+            rows = [
+                make_result(m["id"], slot_i, _now_s(), status_code=200, latency_ms=1)
+                for m in TARGETS
+            ]
+            stmts = [self.env.DB.prepare(INSERT_SQL).bind(*result_row(r))._binding for r in rows]
+            out = await self.env.DB.batch(to_js(stmts))
+            return Response.json(
+                {
+                    "inserted": sum(int(o.meta.changes) for o in out),
+                    "wall_ms": round((time.perf_counter() - t0) * 1000, 1),
+                }
+            )
+
         if path == "/replay":
             # Re-publish a message for a given slot: proves INSERT OR IGNORE on redelivery.
             slot = url.searchParams.get("slot")
