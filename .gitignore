@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node / wrangler
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
