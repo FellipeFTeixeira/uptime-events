@@ -106,6 +106,10 @@ class Default(WorkerEntrypoint):
         url = js.URL.new(request.url)
         path = url.pathname
 
+        if path == "/ping":
+            # Baseline: no bindings, no I/O. Measures pure Python runtime overhead per invocation.
+            return Response("ok")
+
         if path == "/replay":
             # Re-publish a message for a given slot: proves INSERT OR IGNORE on redelivery.
             slot = url.searchParams.get("slot")
