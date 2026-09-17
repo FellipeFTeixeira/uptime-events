@@ -1,0 +1,32 @@
+{
+	"$schema": "../node_modules/wrangler/config-schema.json",
+	"name": "uptime-spike",
+	"main": "src/entry.py",
+	// >= 2026-09-08 selects Python 3.14 (Pyodide 314.0.6) via python_workers_314
+	"compatibility_date": "2026-09-10",
+	"compatibility_flags": ["python_workers"],
+	"triggers": {
+		"crons": ["* * * * *"]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "uptime-spike",
+			// placeholder for local dev; replaced after `wrangler d1 create uptime-spike`
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	],
+	"queues": {
+		"producers": [{ "binding": "CHECKS", "queue": "uptime-spike-checks" }],
+		"consumers": [
+			{
+				"queue": "uptime-spike-checks",
+				"max_batch_size": 1,
+				"max_batch_timeout": 0,
+				"max_retries": 2
+			}
+		]
+	},
+	"observability": { "enabled": true, "head_sampling_rate": 1 }
+}
